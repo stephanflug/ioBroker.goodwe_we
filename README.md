@@ -2,7 +2,7 @@
 
 # ioBroker.goodwe_we
 
-**GoodWe WE Wechselrichter – lokale ioBroker Integration (UDP/8899)**  
+**GoodWe WE (Wechselrichter) – lokale ioBroker Integration (UDP/8899)**  
 Runtime-Datenpunkte + **Reserve-SOC (Mindest-SOC) steuerbar**
 
 </div>
@@ -11,7 +11,7 @@ Runtime-Datenpunkte + **Reserve-SOC (Mindest-SOC) steuerbar**
 
 ## Überblick
 
-`ioBroker.goodwe_we` verbindet sich **lokal** mit einem GoodWe-Wechselrichter (Serie WE) über **UDP Port 8899**.  
+`ioBroker.goodwe_we` verbindet sich **lokal** mit einem GoodWe-Wechselrichter über **UDP Port 8899**.  
 Der Adapter liest regelmäßig alle verfügbaren **Runtime-Werte** aus und legt die Datenpunkte automatisch in ioBroker an.  
 Zusätzlich kann der **Reserve-SOC / Mindest-SOC** (Min-SOC) im Netzbetrieb direkt über ioBroker gesetzt werden.
 
