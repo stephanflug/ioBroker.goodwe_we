@@ -1,0 +1,74 @@
+{
+  "type": "tabs",
+  "items": {
+    "main": {
+      "type": "panel",
+      "label": "Main",
+      "items": {
+        "host": {
+          "type": "text",
+          "label": "Inverter IP / Host",
+          "newLine": true
+        },
+        "pollInterval": {
+          "type": "number",
+          "label": "Polling interval (seconds)",
+          "min": 5,
+          "max": 300,
+          "default": 10,
+          "newLine": true
+        },
+        "protocol": {
+          "type": "select",
+          "label": "Protocol",
+          "options": [
+            { "label": "UDP (8899)", "value": "UDP" },
+            { "label": "TCP (502)", "value": "TCP" }
+          ],
+          "default": "UDP",
+          "newLine": true
+        }
+      }
+    },
+    "advanced": {
+      "type": "panel",
+      "label": "Advanced",
+      "items": {
+        "pythonCmd": {
+          "type": "text",
+          "label": "System Python command (Linux: python3, Windows: py)",
+          "default": "python3",
+          "newLine": true
+        },
+        "pythonArgs": {
+          "type": "text",
+          "label": "Python args (Windows often: -3)",
+          "default": "",
+          "newLine": true
+        },
+        "pythonPackages": {
+          "type": "text",
+          "label": "pip packages (space-separated)",
+          "default": "goodwe>=0.4.8,<1.0",
+          "newLine": true
+        },
+        "timeout": {
+          "type": "number",
+          "label": "Timeout (seconds)",
+          "min": 1,
+          "max": 30,
+          "default": 5,
+          "newLine": true
+        },
+        "retries": {
+          "type": "number",
+          "label": "Retries",
+          "min": 0,
+          "max": 50,
+          "default": 20,
+          "newLine": true
+        }
+      }
+    }
+  }
+}

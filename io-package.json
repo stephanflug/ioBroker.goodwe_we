@@ -1,0 +1,99 @@
+{
+    "common": {
+        "name": "goodwe_we",
+        "version": "0.0.1",
+        "news": {
+            "0.0.1": {
+                "en": "Initial release",
+                "de": "Erstveröffentlichung",
+                "ru": "Начальная версия",
+                "pt": "lançamento inicial",
+                "nl": "Eerste uitgave",
+                "fr": "Première version",
+                "it": "Versione iniziale",
+                "es": "Versión inicial",
+                "pl": "Pierwsze wydanie",
+                "uk": "Початкова версія",
+                "zh-cn": "首次发布"
+            }
+        },
+        "titleLang": {
+            "en": "GoodWe WE",
+            "de": "GoodWe WE",
+            "ru": "GoodWe WE",
+            "pt": "GoodWe WE",
+            "nl": "GoodWe WE",
+            "fr": "GoodWe WE",
+            "it": "GoodWe WE",
+            "es": "GoodWe WE",
+            "pl": "GoodWe WE",
+            "uk": "GoodWe WE",
+            "zh-cn": "GoodWe WE"
+        },
+        "desc": {
+            "en": "Local GoodWe inverter integration (runtime data + reserve SOC control).",
+            "de": "Lokale GoodWe-Wechselrichter-Integration (Runtime-Daten + Reserve-SOC Steuerung).",
+            "ru": "Локальная интеграция инвертора GoodWe (данные в реальном времени + управление резервным SOC).",
+            "pt": "Integração local do inversor GoodWe (dados em tempo real + controle de SOC de reserva).",
+            "nl": "Lokale GoodWe-omvormerintegratie (runtime-data + reserve-SOC-regeling).",
+            "fr": "Intégration locale d’onduleur GoodWe (données temps réel + contrôle SOC de réserve).",
+            "it": "Integrazione locale inverter GoodWe (dati runtime + controllo SOC di riserva).",
+            "es": "Integración local del inversor GoodWe (datos runtime + control SOC de reserva).",
+            "pl": "Lokalna integracja falownika GoodWe (dane bieżące + sterowanie rezerwą SOC).",
+            "uk": "Локальна інтеграція інвертора GoodWe (дані в реальному часі + керування резервним SOC).",
+            "zh-cn": "GoodWe 逆变器本地集成（运行数据 + 备用 SOC 控制）。"
+        },
+        "authors": [
+            "stephanflug <steuerung@gmx.at>"
+        ],
+        "keywords": [
+            "goodwe",
+            "inverter",
+            "solar",
+            "pv",
+            "battery",
+            "energy"
+        ],
+        "licenseInformation": {
+            "type": "free",
+            "license": "MIT"
+        },
+        "platform": "Javascript/Node.js",
+        "icon": "goodwe_we.png",
+        "enabled": true,
+        "extIcon": "https://raw.githubusercontent.com/stephanflug/ioBroker.goodwe_we/main/admin/goodwe_we.png",
+        "readme": "https://github.com/stephanflug/ioBroker.goodwe_we/blob/main/README.md",
+        "loglevel": "info",
+        "tier": 3,
+        "mode": "daemon",
+        "type": "energy",
+        "compact": true,
+        "connectionType": "local",
+        "dataSource": "poll",
+        "adminUI": {
+            "config": "json"
+        },
+        "dependencies": [
+            {
+                "js-controller": ">=6.0.11"
+            }
+        ],
+        "globalDependencies": [
+            {
+                "admin": ">=7.0.23"
+            }
+        ]
+    },
+    "native": {
+        "host": "",
+        "pollInterval": 10,
+        "protocol": "UDP",
+        "pythonCmd": "python3",
+        "pythonArgs": "",
+        "pythonPackages": "goodwe>=0.4.8,<1.0",
+        "timeout": 5,
+        "retries": 20
+    },
+    "objects": [],
+    "instanceObjects": []
+}
