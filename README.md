@@ -1,0 +1,1 @@
+# ioBroker.goodwe_we
