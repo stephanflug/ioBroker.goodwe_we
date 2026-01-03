@@ -18,22 +18,14 @@ function splitArgs(argLine: string): string[] {
     return argLine.trim() ? argLine.trim().split(/\s+/) : [];
 }
 
-/**
- * Configuration for the Python virtual environment.
- */
 export interface PythonEnvConfig {
-    /** Base Python command (Linux: python3, Windows: py). */
     pythonCmd: string;
-    /** Extra args for the base Python command (Windows often: -3). */
     pythonArgs: string;
-    /** Space-separated pip specifiers (e.g. "goodwe>=0.4.8,<1.0"). */
     pythonPackages: string;
 }
 
 export class PythonEnv {
     /**
-     * Ensures a dedicated virtual environment exists and required packages are installed.
-     *
      * @param dataDir Adapter instance data directory.
      * @param cfg Python environment configuration.
      * @param log Logger callback.
@@ -54,14 +46,16 @@ export class PythonEnv {
 
         const needCreate = !(await exists(path.join(venvDir, 'pyvenv.cfg'))) || !(await exists(venvPython));
         if (needCreate) {
-            log(Creating venv in  ...);
+            log(`Creating venv in ${venvDir} ...`);
             await execFileAsync(cfg.pythonCmd, [...baseArgs, '-m', 'venv', venvDir], { timeout: 10 * 60_000 });
         }
 
         let installRequired = true;
         if (await exists(marker)) {
             try {
-                const old = JSON.parse(await fs.readFile(marker, 'utf-8')) as { pythonPackages?: string };
+                const old = JSON.parse(await fs.readFile(marker, 'utf-8')) as {
+                    pythonPackages?: string;
+                };
                 if (old?.pythonPackages === cfg.pythonPackages) {
                     installRequired = false;
                 }
@@ -72,9 +66,7 @@ export class PythonEnv {
 
         if (installRequired) {
             log('Installing Python packages in venv ...');
-            await execFileAsync(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip'], {
-                timeout: 10 * 60_000,
-            });
+            await execFileAsync(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip'], { timeout: 10 * 60_000 });
             await execFileAsync(venvPython, ['-m', 'pip', 'install', '--upgrade', ...packages], {
                 timeout: 10 * 60_000,
             });
