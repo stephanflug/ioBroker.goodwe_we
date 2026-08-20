@@ -44,11 +44,15 @@ sudo apt-get update
 sudo apt-get install -y python3 python3-venv python3-pip
 ```
 
-### Unterstütze das Büro-Kaffeekonto!
+### ☕ Unterstütze das Büro-Kaffeekonto!
 
-Damit der Kaffee im Büro nie ausgeht, wäre eine kleine Spende super! 💰☕  
-Jeder Beitrag hilft, die Kaffeemaschine am Laufen zu halten, damit wir alle produktiv bleiben können!
+Damit der Kaffee im Büro nie ausgeht und die Entwicklung weiter auf Hochtouren läuft, freuen wir uns über eine kleine Unterstützung. ☕💻
 
-[**Spende für Kaffee**](https://www.paypal.com/donate/?business=ACU26RPTCA44S&no_recurring=0&item_name=Dieses+Projekt+und+der+Service+kann+nur+durch+eure+Spenden+finanziert+werden.&currency_code=EUR)
+Jeder Beitrag hilft dabei, die Kaffeemaschine am Laufen zu halten und sorgt für genügend Energie für neue Ideen, Funktionen und Updates.
 
-Vielen Dank für deine Unterstützung! 🙌
+[![PayPal](https://img.shields.io/badge/PayPal-Kaffee%20spendieren-0070BA?logo=paypal\&logoColor=white)](https://paypal.me/stephanflug)
+
+**☕ [Kaffee via PayPal spendieren](https://paypal.me/stephanflug)**
+
+Vielen Dank für deine Unterstützung! ❤️
+
