@@ -167,6 +167,7 @@ class GoodweWe extends utils.Adapter {
         const pythonArgs = String(cfg.pythonArgs || (process.platform === 'win32' ? '-3' : ''));
         const pythonPackages = String(cfg.pythonPackages || 'goodwe>=0.4.8,<1.0');
 
+        try {
         const dataDir = utils.getAbsoluteInstanceDataDir(this);
         const venvPython = await PythonEnv.ensureVenv(dataDir, { pythonCmd, pythonArgs, pythonPackages }, s =>
             this.log.info(s),
@@ -203,6 +204,11 @@ class GoodweWe extends utils.Adapter {
         this.pollTimer = this.setInterval(async () => {
             await this.pollOnce();
         }, pollSec * 1000);
+        } catch (error) {
+            this.log.error(`GoodWe startup failed: ${error instanceof Error ? error.message : String(error)}`);
+            this.rpc?.stop();
+            await this.setStateAsync('info.connection', false, true);
+        }
     }
 
     private async onStateChange(id: string, state: ioBroker.State | null | undefined): Promise<void> {

@@ -50,6 +50,37 @@ export class PythonEnv {
             await execFileAsync(cfg.pythonCmd, [...baseArgs, '-m', 'venv', venvDir], { timeout: 10 * 60_000 });
         }
 
+        const hasPip = async (): Promise<boolean> => {
+            try {
+                await execFileAsync(venvPython, ['-m', 'pip', '--version'], { timeout: 30_000 });
+                return true;
+            } catch {
+                return false;
+            }
+        };
+
+        if (!(await hasPip())) {
+            log('Python pip missing in venv; attempting recovery ...');
+            try {
+                await execFileAsync(venvPython, ['-m', 'ensurepip', '--upgrade'], { timeout: 120_000 });
+            } catch {
+                // On some minimal distributions, ensurepip is unavailable.
+                try {
+                    await execFileAsync(cfg.pythonCmd, [
+                        ...baseArgs, '-m', 'pip', '--python', venvDir, 'install', '--upgrade', 'pip',
+                    ], { timeout: 120_000 });
+                } catch {
+                    throw new Error(
+                        'Python virtual environment has no pip. Install python3-venv and python3-pip ' +
+                        'inside the ioBroker container and restart the adapter.',
+                    );
+                }
+            }
+            if (!(await hasPip())) {
+                throw new Error('Python pip is unavailable after automatic recovery.');
+            }
+        }
+
         let installRequired = true;
         if (await exists(marker)) {
             try {

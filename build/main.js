@@ -152,6 +152,7 @@ class GoodweWe extends utils.Adapter {
     const pythonCmd = String(cfg.pythonCmd || (process.platform === "win32" ? "py" : "python3"));
     const pythonArgs = String(cfg.pythonArgs || (process.platform === "win32" ? "-3" : ""));
     const pythonPackages = String(cfg.pythonPackages || "goodwe>=0.4.8,<1.0");
+    try {
     const dataDir = utils.getAbsoluteInstanceDataDir(this);
     const venvPython = await import_pythonEnv.PythonEnv.ensureVenv(
       dataDir,
@@ -184,6 +185,11 @@ class GoodweWe extends utils.Adapter {
     this.pollTimer = this.setInterval(async () => {
       await this.pollOnce();
     }, pollSec * 1e3);
+    } catch (error) {
+      this.log.error(`GoodWe startup failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.rpc?.stop();
+      await this.setStateAsync("info.connection", false, true);
+    }
   }
   async onStateChange(id, state) {
     var _a;
