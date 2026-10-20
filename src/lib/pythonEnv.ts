@@ -2,6 +2,8 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
+import * as https from 'node:https';
+import * as os from 'node:os';
 
 const execFileAsync = promisify(execFile);
 
@@ -16,6 +18,37 @@ async function exists(p: string): Promise<boolean> {
 
 function splitArgs(argLine: string): string[] {
     return argLine.trim() ? argLine.trim().split(/\s+/) : [];
+}
+
+
+/** Download the official PyPA bootstrap only when both local recovery methods fail. */
+async function downloadGetPip(destination: string): Promise<void> {
+    const url = 'https://bootstrap.pypa.io/get-pip.py';
+    await new Promise<void>((resolve, reject) => {
+        const req = https.get(url, { timeout: 60_000 }, response => {
+            if (response.statusCode !== 200) {
+                response.resume();
+                reject(new Error(`PyPA bootstrap download failed (HTTP ${response.statusCode})`));
+                return;
+            }
+            const chunks: Buffer[] = [];
+            let size = 0;
+            response.on('data', (chunk: Buffer) => {
+                size += chunk.length;
+                if (size > 8 * 1024 * 1024) {
+                    req.destroy(new Error('PyPA bootstrap exceeded 8 MB'));
+                    return;
+                }
+                chunks.push(chunk);
+            });
+            response.on('error', reject);
+            response.on('end', () => {
+                fs.writeFile(destination, Buffer.concat(chunks)).then(() => resolve(), reject);
+            });
+        });
+        req.on('timeout', () => req.destroy(new Error('PyPA download timed out')));
+        req.on('error', reject);
+    });
 }
 
 export interface PythonEnvConfig {
@@ -47,7 +80,7 @@ export class PythonEnv {
         const needCreate = !(await exists(path.join(venvDir, 'pyvenv.cfg'))) || !(await exists(venvPython));
         if (needCreate) {
             log(`Creating venv in ${venvDir} ...`);
-            await execFileAsync(cfg.pythonCmd, [...baseArgs, '-m', 'venv', venvDir], { timeout: 10 * 60_000 });
+            await execFileAsync(cfg.pythonCmd, [...baseArgs, '-m', 'venv', '--without-pip', venvDir], { timeout: 10 * 60_000 });
         }
 
         const hasPip = async (): Promise<boolean> => {
@@ -60,24 +93,44 @@ export class PythonEnv {
         };
 
         if (!(await hasPip())) {
-            log('Python pip missing in venv; attempting recovery ...');
+            log('Python pip missing in venv; attempting automatic installation ...');
             try {
                 await execFileAsync(venvPython, ['-m', 'ensurepip', '--upgrade'], { timeout: 120_000 });
             } catch {
-                // On some minimal distributions, ensurepip is unavailable.
+                // Debian minimal images may omit ensurepip.
+            }
+
+            if (!(await hasPip())) {
                 try {
                     await execFileAsync(cfg.pythonCmd, [
                         ...baseArgs, '-m', 'pip', '--python', venvDir, 'install', '--upgrade', 'pip',
                     ], { timeout: 120_000 });
                 } catch {
-                    throw new Error(
-                        'Python virtual environment has no pip. Install python3-venv and python3-pip ' +
-                        'inside the ioBroker container and restart the adapter.',
-                    );
+                    // The system Python may not contain pip either.
                 }
             }
+
             if (!(await hasPip())) {
-                throw new Error('Python pip is unavailable after automatic recovery.');
+                log('Installing pip from the official PyPA bootstrap (bootstrap.pypa.io) ...');
+                const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'goodwe-pip-'));
+                try {
+                    const bootstrap = path.join(tempDir, 'get-pip.py');
+                    await downloadGetPip(bootstrap);
+                    await execFileAsync(venvPython, [bootstrap, '--disable-pip-version-check'], {
+                        timeout: 10 * 60_000,
+                    });
+                } catch (error) {
+                    throw new Error(
+                        `Unable to install pip in the Python environment: ${error instanceof Error ? error.message : String(error)}. ` +
+                        'Check HTTPS access to bootstrap.pypa.io and pypi.org and Python venv support.',
+                    );
+                } finally {
+                    await fs.rm(tempDir, { recursive: true, force: true });
+                }
+            }
+
+            if (!(await hasPip())) {
+                throw new Error('Python pip is unavailable after automatic installation.');
             }
         }
 
