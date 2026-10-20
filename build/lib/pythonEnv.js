@@ -35,6 +35,8 @@ var import_node_child_process = require("node:child_process");
 var import_node_fs = require("node:fs");
 var path = __toESM(require("node:path"));
 var import_node_util = require("node:util");
+var https = __toESM(require("node:https"));
+var os = __toESM(require("node:os"));
 const execFileAsync = (0, import_node_util.promisify)(import_node_child_process.execFile);
 async function exists(p) {
   try {
@@ -46,6 +48,34 @@ async function exists(p) {
 }
 function splitArgs(argLine) {
   return argLine.trim() ? argLine.trim().split(/\s+/) : [];
+}
+async function downloadGetPip(destination) {
+  const url = "https://bootstrap.pypa.io/get-pip.py";
+  await new Promise((resolve, reject) => {
+    const req = https.get(url, { timeout: 6e4 }, response => {
+      if (response.statusCode !== 200) {
+        response.resume();
+        reject(new Error(`PyPA bootstrap download failed (HTTP ${response.statusCode})`));
+        return;
+      }
+      const chunks = [];
+      let size = 0;
+      response.on("data", chunk => {
+        size += chunk.length;
+        if (size > 8 * 1024 * 1024) {
+          req.destroy(new Error("PyPA bootstrap exceeded 8 MB"));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on("error", reject);
+      response.on("end", () => {
+        import_node_fs.promises.writeFile(destination, Buffer.concat(chunks)).then(() => resolve(), reject);
+      });
+    });
+    req.on("timeout", () => req.destroy(new Error("PyPA download timed out")));
+    req.on("error", reject);
+  });
 }
 class PythonEnv {
   /**
@@ -74,17 +104,29 @@ class PythonEnv {
       }
     };
     if (!await hasPip()) {
-      log("Python pip missing in venv; attempting recovery ...");
+      log("Python pip missing in venv; attempting automatic installation ...");
       try {
         await execFileAsync(venvPython, ["-m", "ensurepip", "--upgrade"], { timeout: 12e4 });
-      } catch {
+      } catch {}
+      if (!await hasPip()) {
         try {
           await execFileAsync(cfg.pythonCmd, [...baseArgs, "-m", "pip", "--python", venvDir, "install", "--upgrade", "pip"], { timeout: 12e4 });
-        } catch {
-          throw new Error("Python virtual environment has no pip. Install python3-venv and python3-pip inside the ioBroker container and restart the adapter.");
+        } catch {}
+      }
+      if (!await hasPip()) {
+        log("Installing pip from the official PyPA bootstrap (bootstrap.pypa.io) ...");
+        const tempDir = await import_node_fs.promises.mkdtemp(path.join(os.tmpdir(), "goodwe-pip-"));
+        try {
+          const bootstrap = path.join(tempDir, "get-pip.py");
+          await downloadGetPip(bootstrap);
+          await execFileAsync(venvPython, [bootstrap, "--disable-pip-version-check"], { timeout: 6e5 });
+        } catch (error) {
+          throw new Error(`Unable to install pip in the Python environment: ${error instanceof Error ? error.message : String(error)}. Check HTTPS access to bootstrap.pypa.io and pypi.org and Python venv support.`);
+        } finally {
+          await import_node_fs.promises.rm(tempDir, { recursive: true, force: true });
         }
       }
-      if (!await hasPip()) throw new Error("Python pip is unavailable after automatic recovery.");
+      if (!await hasPip()) throw new Error("Python pip is unavailable after automatic installation.");
     }
     let installRequired = true;
     if (await exists(marker)) {
