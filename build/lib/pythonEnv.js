@@ -96,7 +96,7 @@ class PythonEnv {
         const { stdout: baseVersion } = await execFileAsync(cfg.pythonCmd, [...baseArgs, "-c", 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { timeout: 3e4 });
         const { stdout: venvVersion } = await execFileAsync(venvPython, ["-c", 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { timeout: 3e4 });
         const config = await import_node_fs.promises.readFile(path.join(venvDir, "pyvenv.cfg"), "utf-8");
-        const storedVersion = /^version\\s*=\\s*(\\d+\\.\\d+)/m.exec(config)?.[1];
+        const storedVersion = /^version\s*=\s*(\d+\.\d+)/m.exec(config)?.[1];
         needCreate = baseVersion.trim() !== venvVersion.trim() || storedVersion !== venvVersion.trim();
       } catch {
         needCreate = true;
