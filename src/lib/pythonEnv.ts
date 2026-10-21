@@ -77,9 +77,23 @@ export class PythonEnv {
                 ? path.join(venvDir, 'Scripts', 'python.exe')
                 : path.join(venvDir, 'bin', 'python');
 
-        const needCreate = !(await exists(path.join(venvDir, 'pyvenv.cfg'))) || !(await exists(venvPython));
+        let needCreate = !(await exists(path.join(venvDir, 'pyvenv.cfg'))) || !(await exists(venvPython));
+        if (!needCreate) {
+            try {
+                const { stdout: baseVersion } = await execFileAsync(cfg.pythonCmd, [...baseArgs, '-c',
+                    'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { timeout: 30_000 });
+                const { stdout: venvVersion } = await execFileAsync(venvPython, ['-c',
+                    'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { timeout: 30_000 });
+                const config = await fs.readFile(path.join(venvDir, 'pyvenv.cfg'), 'utf-8');
+                const storedVersion = /^version\s*=\s*(\d+\.\d+)/m.exec(config)?.[1];
+                needCreate = baseVersion.trim() !== venvVersion.trim() || storedVersion !== venvVersion.trim();
+            } catch {
+                needCreate = true;
+            }
+        }
         if (needCreate) {
-            log(`Creating venv in ${venvDir} ...`);
+            log(`Creating a fresh Python venv in ${venvDir} ...`);
+            await fs.rm(venvDir, { recursive: true, force: true });
             await execFileAsync(cfg.pythonCmd, [...baseArgs, '-m', 'venv', '--without-pip', venvDir], { timeout: 10 * 60_000 });
         }
 
@@ -141,7 +155,12 @@ export class PythonEnv {
                     pythonPackages?: string;
                 };
                 if (old?.pythonPackages === cfg.pythonPackages) {
-                    installRequired = false;
+                    try {
+                        await execFileAsync(venvPython, ['-c', 'import goodwe'], { timeout: 30_000 });
+                        installRequired = false;
+                    } catch {
+                        log('Python package verification failed; reinstalling packages ...');
+                    }
                 }
             } catch {
                 // If marker cannot be parsed, re-install packages
