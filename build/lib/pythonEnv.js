@@ -90,10 +90,22 @@ class PythonEnv {
     const packages = cfg.pythonPackages.trim().split(/\s+/).filter(Boolean);
     await import_node_fs.promises.mkdir(venvDir, { recursive: true });
     const venvPython = process.platform === "win32" ? path.join(venvDir, "Scripts", "python.exe") : path.join(venvDir, "bin", "python");
-    const needCreate = !await exists(path.join(venvDir, "pyvenv.cfg")) || !await exists(venvPython);
+    let needCreate = !await exists(path.join(venvDir, "pyvenv.cfg")) || !await exists(venvPython);
+    if (!needCreate) {
+      try {
+        const { stdout: baseVersion } = await execFileAsync(cfg.pythonCmd, [...baseArgs, "-c", 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { timeout: 3e4 });
+        const { stdout: venvVersion } = await execFileAsync(venvPython, ["-c", 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { timeout: 3e4 });
+        const config = await import_node_fs.promises.readFile(path.join(venvDir, "pyvenv.cfg"), "utf-8");
+        const storedVersion = /^version\\s*=\\s*(\\d+\\.\\d+)/m.exec(config)?.[1];
+        needCreate = baseVersion.trim() !== venvVersion.trim() || storedVersion !== venvVersion.trim();
+      } catch {
+        needCreate = true;
+      }
+    }
     if (needCreate) {
-      log(`Creating venv in ${venvDir} ...`);
-      await execFileAsync(cfg.pythonCmd, [...baseArgs, "-m", "venv", venvDir], { timeout: 10 * 6e4 });
+      log(`Creating a fresh Python venv in ${venvDir} ...`);
+      await import_node_fs.promises.rm(venvDir, { recursive: true, force: true });
+      await execFileAsync(cfg.pythonCmd, [...baseArgs, "-m", "venv", "--without-pip", venvDir], { timeout: 10 * 6e4 });
     }
     const hasPip = async () => {
       try {
@@ -133,7 +145,12 @@ class PythonEnv {
       try {
         const old = JSON.parse(await import_node_fs.promises.readFile(marker, "utf-8"));
         if ((old == null ? void 0 : old.pythonPackages) === cfg.pythonPackages) {
-          installRequired = false;
+          try {
+            await execFileAsync(venvPython, ["-c", "import goodwe"], { timeout: 3e4 });
+            installRequired = false;
+          } catch {
+            log("Python package verification failed; reinstalling packages ...");
+          }
         }
       } catch {
       }
