@@ -29,6 +29,8 @@ export class GoodweRpc {
     private proc?: ChildProcessWithoutNullStreams;
     private rl?: readline.Interface;
     private nextId = 1;
+    private stderrTail = '';
+    private exitError?: Error;
 
     private readonly pending = new Map<
         number,
@@ -53,10 +55,25 @@ export class GoodweRpc {
      *
      */
     public start(): void {
+        this.stderrTail = '';
+        this.exitError = undefined;
         this.proc = spawn(this.pythonExe, [this.scriptPath, ...this.args], { stdio: ['pipe', 'pipe', 'pipe'] });
 
+        this.proc.stderr.on('data', (chunk: Buffer) => {
+            this.stderrTail = (this.stderrTail + chunk.toString('utf8')).slice(-4096);
+        });
+        this.proc.on('error', error => {
+            this.exitError = error;
+            for (const pending of this.pending.values()) {
+                pending.reject(error);
+            }
+            this.pending.clear();
+        });
+
         this.proc.on('exit', code => {
-            const err = new Error(`Python worker exited with code ${code}`);
+            const details = this.stderrTail.trim();
+            const err = new Error(`Python worker exited with code ${code}${details ? `: ${details}` : ''}`);
+            this.exitError = err;
             for (const [, p] of this.pending) {
                 p.reject(err);
             }
@@ -94,7 +111,7 @@ export class GoodweRpc {
 
     private call(cmd: string, value?: unknown): Promise<unknown> {
         if (!this.proc?.stdin.writable) {
-            return Promise.reject(new Error('Python worker not running'));
+            return Promise.reject(this.exitError ?? new Error('Python worker not running'));
         }
 
         const id = this.nextId++;
