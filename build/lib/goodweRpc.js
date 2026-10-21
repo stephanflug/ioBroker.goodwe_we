@@ -47,14 +47,28 @@ class GoodweRpc {
   proc;
   rl;
   nextId = 1;
+  stderrTail = "";
+  exitError;
   pending = /* @__PURE__ */ new Map();
   /**
    *
    */
   start() {
+    this.stderrTail = "";
+    this.exitError = void 0;
     this.proc = (0, import_node_child_process.spawn)(this.pythonExe, [this.scriptPath, ...this.args], { stdio: ["pipe", "pipe", "pipe"] });
+    this.proc.stderr.on("data", chunk => {
+      this.stderrTail = (this.stderrTail + chunk.toString("utf8")).slice(-4096);
+    });
+    this.proc.on("error", error => {
+      this.exitError = error;
+      for (const pending of this.pending.values()) pending.reject(error);
+      this.pending.clear();
+    });
     this.proc.on("exit", (code) => {
-      const err = new Error(`Python worker exited with code ${code}`);
+      const details = this.stderrTail.trim();
+      const err = new Error(`Python worker exited with code ${code}${details ? `: ${details}` : ""}`);
+      this.exitError = err;
       for (const [, p] of this.pending) {
         p.reject(err);
       }
@@ -89,7 +103,7 @@ class GoodweRpc {
   call(cmd, value) {
     var _a;
     if (!((_a = this.proc) == null ? void 0 : _a.stdin.writable)) {
-      return Promise.reject(new Error("Python worker not running"));
+      return Promise.reject(this.exitError ?? new Error("Python worker not running"));
     }
     const id = this.nextId++;
     const payload = { id, cmd };
